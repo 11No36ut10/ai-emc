@@ -12,16 +12,25 @@
 ///<reference path="p5.global-mode.d.ts" />
 "use strict"
 
-const MUTATION_CHANGE = 0.05;
+const MUTATION_CHANGE = 0.6;
 
 let label;
 let teRadenWoordInput;
 let startButton;
 let nextGenerationButton;
+let stopButton;
 
 let currentGeneration;
 let currentTotalScore;
 let teRadenWoord;
+var newcharacterslength;
+var newcharacters = '';
+var solA;
+let solB;
+var bestSolution;
+var stopped = false;
+var running = false;
+var highestofhighest = 0;
 
 
 /* ********************************************* */
@@ -51,6 +60,11 @@ function setup() {
   nextGenerationButton.position(450, 120);
   nextGenerationButton.attribute("disabled", true)
   nextGenerationButton.mouseClicked(nextIteration);
+
+  stopButton = createButton("stop generation");
+  stopButton.position(450, 160);
+  stopButton.attribute("disabled", true);
+  stopButton.mouseClicked(stop);
 }
 
 
@@ -63,6 +77,10 @@ function draw() {
   background('gray');
 }
 
+function stop() {
+  stopped = true;
+}
+
 function start() {
   if (teRadenWoordInput.value().length < 8) {
     window.alert("woord kleiner dan 8 tekens");
@@ -71,8 +89,10 @@ function start() {
 
   startButton.attribute("disabled", true);
   nextGenerationButton.removeAttribute("disabled");
+  stopButton.removeAttribute("disabled");
 
-  teRadenWoord = teRadenWoordInput.value();
+  teRadenWoord = teRadenWoordInput.value(); 
+  
   createFirstGeneration();
 
   for (let i = 0; i < currentGeneration.length; i++) {
@@ -83,28 +103,73 @@ function start() {
 }
 
 function nextIteration() {
-  let newGeneration = []
+        let newGeneration = []
 
-  // creëer een nieuwe generatie:
-  // kies twee oplossingen
-  calculateTotalScore();
-  let solA = rouletteWheelSelection()
-  let solB = rouletteWheelSelection()
-  while (solA === solB) {
-    solB = rouletteWheelSelection()
+        // creëer een nieuwe generatie:
+        // kies twee oplossingen
+        console.log(calculateTotalScore());
+        
+        solA = rouletteWheelSelection()
+        solB = rouletteWheelSelection()
+        while (solA === solB) {
+          solB = rouletteWheelSelection()
+        }
+
+        createcharacterlist();
+        console.log(newcharacters);
+
+        for (var i = 0; i < 20; i++) {
+          let input = '';
+          for (var t = 0; t < 8; t++) {
+            input += newcharacters.charAt(Math.floor(Math.random() * newcharacterslength));
+            
+          }
+          newGeneration.push({value: input});
+          calculateSolutionFitness(newGeneration[i]);
+        }
+
+        // for(var i = 0; i < 1; i++) {
+        //   newGeneration.push(createRandomSolution());
+        //   calculateSolutionFitness(newGeneration[i+19]);
+        // }
+
+        console.log(solA);
+        console.log(solB);
+
+        // maak twee nieuwe oplossingen door uitwisseling
+        // en zet die in de nieuwe generatie
+        
+        
+        // vervang de oude generatie
+        currentGeneration = newGeneration;
+        console.log(currentGeneration);
+        bestSolution = bestCurrentSolution();
+        if(calculateTotalScore() > highestofhighest) {
+          highestofhighest = calculateTotalScore();
+        }
+        console.log("beste oplossing: ", bestSolution);
+        console.log("best ooit " + highestofhighest);
+        running = false;
+}
+
+function createcharacterlist() {
+  newcharacters = '';
+  let roll = random(1)
+  if (roll < MUTATION_CHANGE) {
+    newcharacters += getRandomLowerCaseLetter()
+    newcharacterslength = 17;
+    if (roll < MUTATION_CHANGE) {
+      newcharacters += getRandomLowerCaseLetter()
+      newcharacterslength = 18;
+      if (roll < MUTATION_CHANGE) {
+        newcharacters += getRandomLowerCaseLetter()
+        newcharacterslength = 19;
+      }
+    }
+  }else{
+    newcharacterslength = 16;
   }
-
-  console.log(solA);
-  console.log(solB);
-
-  // maak twee nieuwe oplossingen door uitwisseling
-  // en zet die in de nieuwe generatie
-  
-  
-  // vervang de oude generatie
-  currentGeneration = newGeneration
-
-
+  newcharacters += solA.value + solB.value;
 }
 
 
@@ -150,7 +215,7 @@ function calculateTotalScore() {
     currentTotalScore = currentTotalScore + solution.score
   }
 
-  console.log("totalscore is " + currentTotalScore)
+  return currentTotalScore
 }
 
 
@@ -185,11 +250,10 @@ function solutionWidthCrossOver(solA, solB) {
 }
 
 
-function mutate(solution) {
+function mutate() {
   let roll = random(1)
   if (roll < MUTATION_CHANGE) {
-    let characterIndex = floor(random(8))
-    solution.value[characterIndex] = getRandomLowerCaseLetter()
+    return getRandomLowerCaseLetter()
   }
 }
 
